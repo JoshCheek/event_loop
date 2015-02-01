@@ -1,6 +1,9 @@
+require 'thread'
+
 class EventLoop
   class Switch
     def initialize(initial_state)
+      states = [:blocked, :unblocked]
       states.include? initial_state or
         raise ArgumentError, "Unknown initial state: #{initial_state}, expected one of #{states.inspect}"
       self.state       = initial_state
@@ -20,23 +23,26 @@ class EventLoop
     end
 
     def wait
-      return nil if unblocked?
-      semaphore.synchronize { @num_blocked += 1 }
+      semaphore.synchronize do
+        return if unblocked?
+        @num_blocked += 1
+      end
       queue.shift
       nil
     end
 
     def block
-      self.state = :blocked
+      semaphore.synchronize { self.state = :blocked }
       :blocked
     end
 
     def unblock
-      return :unblocked if unblocked?
       semaphore.synchronize do
-        self.state = :unblocked
-        num_blocked.times { queue << nil }
-        self.num_blocked = 0
+        if blocked?
+          self.state = :unblocked
+          num_blocked.times { queue << nil }
+          self.num_blocked = 0
+        end
       end
       :unblocked
     end
@@ -49,9 +55,5 @@ class EventLoop
 
     attr_writer :state, :num_blocked
     attr_accessor :queue, :semaphore
-
-    def states
-      @states ||= [:blocked, :unblocked]
-    end
   end
 end
