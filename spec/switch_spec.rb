@@ -105,4 +105,9 @@ RSpec.describe EventLoop::Switch do
     switch.wait
     expect(switch.num_blocked).to eq 0
   end
+
+  it 'has a fancy inspect' do
+    switch = described_class.new :unblocked
+    expect(switch.inspect).to include 'num_blocked: 0'
+  end
 end

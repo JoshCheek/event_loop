@@ -41,6 +41,10 @@ class EventLoop
       :unblocked
     end
 
+    def inspect
+      "#<Switch state: #{state}, num_blocked: #{num_blocked}>"
+    end
+
     private
 
     attr_writer :state, :num_blocked
