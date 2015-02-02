@@ -3,9 +3,11 @@ require 'event_loop/switch'
 require 'timeout'
 
 RSpec.describe EventLoop::Worker do
-  let(:queue)     { Queue.new }
-  let(:parent)    { EventLoop::Switch.new :blocked }
-  let(:child)     { EventLoop::Switch.new :blocked }
+  # Must use let! b/c let is lazy and is not threadsafe
+  # A lot of hours went into figuring that out :/
+  let!(:queue)     { Queue.new }
+  let!(:parent)    { EventLoop::Switch.new :blocked }
+  let!(:child)     { EventLoop::Switch.new :blocked }
 
   def new_worker(queue, &job)
     described_class.new(queue, &job)
@@ -133,7 +135,6 @@ RSpec.describe EventLoop::Worker do
         worker = new_worker(queue) do |item|
           performed << item
           parent.unblock
-          p parent
         end
         # it is waiting for work, but is turned off
         worker.on!
@@ -148,7 +149,6 @@ RSpec.describe EventLoop::Worker do
         # turn it on, it will do the work, we will wait for the work to be done
         worker.on!
         parent.wait
-        puts "PAST THE WAIT!"
         expect(performed).to eq [:item]
       end
     end
